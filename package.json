@@ -1,0 +1,13 @@
+{
+  "name": "check-mail-cron",
+  "version": "1.0.0",
+  "description": "Cron job for W Dacie mail reminders",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.5",
+    "nodemailer": "^6.9.4"
+  }
+}
