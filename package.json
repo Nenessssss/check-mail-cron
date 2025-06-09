@@ -1,6 +1,7 @@
 {
   "name": "check-mail-cron",
   "version": "1.0.0",
+  "type": "module",
   "description": "Cron job for W Dacie mail reminders",
   "main": "index.js",
   "scripts": {

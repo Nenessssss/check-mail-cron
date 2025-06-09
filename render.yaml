@@ -2,6 +2,6 @@ services:
   - type: cron
     name: check-mail-cron
     runtime: node
-    schedule: "0 8 * * *"
+    schedule: "*/2 * * * *"
     buildCommand: "npm install"
     startCommand: "node index.js"

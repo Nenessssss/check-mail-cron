@@ -47,14 +47,14 @@ async function run() {
       from: 'w.dacie.app@gmail.com',
       to: `${tech1},${tech2}`,
       subject,
-      text: `Hej ${stockkeeper}, twoje narzędzie ${toolInfo} wychodzi z daty za 90 dni. Stockkeeper poinformowany!`,
+      text: `Hej ${category}, twoje narzędzie ${toolInfo} wychodzi z daty za 90 dni. Stockkeeper poinformowany!`,
     };
 
     const msgStock = {
       from: 'w.dacie.app@gmail.com',
       to: stockkeeper,
       subject,
-      text: `Hej tu van ${stockkeeper}, nasze narzędzie ${toolInfo} wychodzi z daty za 90 dni. Zamów nam nowe narzędzie. Dziękujemy.`,
+      text: `Hej tu van ${category}, nasze narzędzie ${toolInfo} wychodzi z daty za 90 dni. Zamów nam nowe narzędzie. Dziękujemy.`,
     };
 
     try {
