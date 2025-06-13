@@ -66,6 +66,10 @@ async function run() {
       console.error('❌ Błąd przy wysyłaniu maili:', e);
     }
   }
+
+  // ✅ Dodaj wpis do cron_log na końcu
+  await supabase.from('cron_log').insert({});
+  console.log('🟢 Zapisano wpis do cron_log');
 }
 
 run();
