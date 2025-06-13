@@ -35,6 +35,8 @@ async function run() {
 
   if (!data || data.length === 0) {
     console.log('✅ Brak narzędzi do wysłania maila.');
+    await supabase.from('cron_log').insert({ count: 0 });
+    console.log('🟢 Zapisano wpis do cron_log (wysłano 0 powiadomień)');
     return;
   }
 
@@ -67,9 +69,9 @@ async function run() {
     }
   }
 
-  // ✅ Dodaj wpis do cron_log na końcu
-  await supabase.from('cron_log').insert({});
-  console.log('🟢 Zapisano wpis do cron_log');
+  // ✅ Zapisz liczbę powiadomień do cron_log
+  await supabase.from('cron_log').insert({ count: data.length });
+  console.log(`🟢 Zapisano wpis do cron_log (wysłano ${data.length} powiadomień)`);
 }
 
 run();
