@@ -3,7 +3,6 @@ import nodemailer from 'nodemailer';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const transporter = nodemailer.createTransport({
@@ -40,10 +39,16 @@ async function run() {
     return;
   }
 
+  let sentCount = 0;
+
   for (const row of data) {
     const { name, vt, tech1, tech2, stockkeeper, category, id } = row;
     const toolInfo = `${name} ${vt}`;
     const subject = `Przypomnienie: ${toolInfo} (${category})`;
+
+    const location = category.startsWith('643') ? 'Chodzież' :
+                     category.startsWith('645') ? 'Wągrowiec' :
+                     category.startsWith('640') ? 'Inowrocław' : 'Inne';
 
     const msgTech = {
       from: 'w.dacie.app@gmail.com',
@@ -63,15 +68,27 @@ async function run() {
       await transporter.sendMail(msgTech);
       await transporter.sendMail(msgStock);
       console.log(`✉️ Wysłano e-maile dla: ${toolInfo}`);
+
       await supabase.from('formularze').update({ mailed: true }).eq('id', id);
+
+      // 🟦 Zapis do zamowienia
+      await supabase.from('zamowienia').insert({
+        location,
+        category,
+        name,
+        vt,
+        sent_date: today.toISOString().split('T')[0],
+      });
+
+      sentCount++;
+
     } catch (e) {
       console.error('❌ Błąd przy wysyłaniu maili:', e);
     }
   }
 
-  // ✅ Zapisz liczbę powiadomień do cron_log
-  await supabase.from('cron_log').insert({ count: data.length });
-  console.log(`🟢 Zapisano wpis do cron_log (wysłano ${data.length} powiadomień)`);
+  await supabase.from('cron_log').insert({ count: sentCount });
+  console.log(`🟢 Zapisano wpis do cron_log (wysłano ${sentCount} powiadomień)`);
 }
 
 run();
