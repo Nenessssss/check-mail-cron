@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
 
+// 🔹 Połączenie z Supabase
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// 🔹 Konfiguracja Nodemailer
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -48,7 +50,10 @@ async function run() {
 
     const location = category.startsWith('643') ? 'Chodzież' :
                      category.startsWith('645') ? 'Wągrowiec' :
-                     category.startsWith('640') ? 'Inowrocław' : 'Inne';
+                     category.startsWith('640') ? 'Inowrocław' :
+                     category.startsWith('642') ? 'Włocławek' :
+                     category.startsWith('672') ? 'Września' :
+                     category.startsWith('673') ? 'Nowy Tomyśl' : 'Inne';
 
     const msgTech = {
       from: 'w.dacie.app@gmail.com',
@@ -65,13 +70,21 @@ async function run() {
     };
 
     try {
+      // ✉️ Wysyłka e-maili
       await transporter.sendMail(msgTech);
       await transporter.sendMail(msgStock);
       console.log(`✉️ Wysłano e-maile dla: ${toolInfo}`);
 
-      await supabase.from('formularze').update({ mailed: true }).eq('id', id);
+      // 🕓 Zapisujemy datę wysyłki
+      await supabase
+        .from('formularze')
+        .update({
+          mailed: true,
+          mailed_date: new Date().toISOString() // <--- tu dodajemy datę wysyłki
+        })
+        .eq('id', id);
 
-      // 🟦 Zapis do zamowienia
+      // 🟦 Zapis do zamówienia (bez zmian)
       await supabase.from('zamowienia').insert({
         location,
         category,
@@ -87,6 +100,7 @@ async function run() {
     }
   }
 
+  // 🧾 Log w cron_log
   await supabase.from('cron_log').insert({ count: sentCount });
   console.log(`🟢 Zapisano wpis do cron_log (wysłano ${sentCount} powiadomień)`);
 }
