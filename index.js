@@ -1,8 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
-import express from 'express';
-
-const app = express();
 
 // 🔹 Połączenie z Supabase
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -18,39 +15,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// =======================================================
-// ▶ TEST CRON — WYWOŁYWANY Z ADMIN.HTML
-// =======================================================
-app.get("/test-cron", async (req, res) => {
-  try {
-    console.log("=== TEST CRON START ===");
-
-    // testowy mail
-    await transporter.sendMail({
-      from: "w.dacie.app@gmail.com",
-      to: "w.dacie.app@gmail.com",
-      subject: "TEST CRON – W Dacie",
-      text: "Test CRON został wykonany poprawnie (Express endpoint)."
-    });
-
-    // wpis do cron_log
-    await supabase.from("cron_log").insert({
-      timestamp: new Date(),
-      count: 1
-    });
-
-    console.log("=== TEST CRON DONE ===");
-    res.json({ ok: true });
-
-  } catch (error) {
-    console.error("❌ Błąd w TEST CRON:", error);
-    res.json({ ok: false });
-  }
-});
-
-// =======================================================
-// ▶ GŁÓWNY CRON JOB — NIE ZMIENIAMY
-// =======================================================
 async function run() {
   const today = new Date();
   const targetDate = new Date(today);
@@ -63,3 +27,82 @@ async function run() {
     .from('formularze')
     .select('*')
     .eq('date', formattedTarget)
+    .eq('mailed', false);
+
+  if (error) {
+    console.error('❌ Błąd przy pobieraniu:', error);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    console.log('✅ Brak narzędzi do wysłania maila.');
+    await supabase.from('cron_log').insert({ count: 0 });
+    console.log('🟢 Zapisano wpis do cron_log (wysłano 0 powiadomień)');
+    return;
+  }
+
+  let sentCount = 0;
+
+  for (const row of data) {
+    const { name, vt, tech1, tech2, stockkeeper, category, id } = row;
+    const toolInfo = `${name} ${vt}`;
+    const subject = `Przypomnienie: ${toolInfo} (${category})`;
+
+    const location = category.startsWith('643') ? 'Chodzież' :
+                     category.startsWith('645') ? 'Wągrowiec' :
+                     category.startsWith('640') ? 'Inowrocław' :
+                     category.startsWith('642') ? 'Włocławek' :
+                     category.startsWith('672') ? 'Września' :
+                     category.startsWith('673') ? 'Nowy Tomyśl' : 'Inne';
+
+    const msgTech = {
+      from: 'w.dacie.app@gmail.com',
+      to: `${tech1},${tech2}`,
+      subject,
+      text: `Hej ${category}, twoje narzędzie ${toolInfo} wychodzi z daty za 90 dni. Stockkeeper poinformowany!`,
+    };
+
+    const msgStock = {
+      from: 'w.dacie.app@gmail.com',
+      to: stockkeeper,
+      subject,
+      text: `Hej tu van ${category}, nasze narzędzie ${toolInfo} wychodzi z daty za 90 dni. Zamów nam nowe narzędzie. Dziękujemy.`,
+    };
+
+    try {
+      // ✉️ Wysyłka e-maili
+      await transporter.sendMail(msgTech);
+      await transporter.sendMail(msgStock);
+      console.log(`✉️ Wysłano e-maile dla: ${toolInfo}`);
+
+      // 🕓 Zapisujemy datę wysyłki
+      await supabase
+        .from('formularze')
+        .update({
+          mailed: true,
+          mailed_date: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      // 🟦 Zapis do zamówienia
+      await supabase.from('zamowienia').insert({
+        location,
+        category,
+        name,
+        vt,
+        sent_date: today.toISOString().split('T')[0],
+      });
+
+      sentCount++;
+
+    } catch (e) {
+      console.error('❌ Błąd przy wysyłaniu maili:', e);
+    }
+  }
+
+  // 🧾 Log w cron_log
+  await supabase.from('cron_log').insert({ count: sentCount });
+  console.log(`🟢 Zapisano wpis do cron_log (wysłano ${sentCount} powiadomień)`);
+}
+
+run();
