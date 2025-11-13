@@ -70,6 +70,42 @@ async function run() {
     };
 
     try {
+      // Wysyłka maili
       await transporter.sendMail(msgTech);
       await transporter.sendMail(msgStock);
-      conso
+      console.log(`✉️ Wysłano e-maile dla: ${toolInfo}`);
+
+      // Aktualizacja rekordu
+      await supabase
+        .from('formularze')
+        .update({
+          mailed: true,
+          mailed_date: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      // Zapis zamówienia
+      await supabase.from('zamowienia').insert({
+        location,
+        category,
+        name,
+        vt,
+        sent_date: today.toISOString().split('T')[0],
+      });
+
+      sentCount++;
+
+    } catch (e) {
+      console.error('❌ Błąd przy wysyłaniu maili:', e);
+    }
+  }
+
+  // Log do cron_log
+  await supabase.from('cron_log').insert({ count: sentCount });
+  console.log(`🟢 Zapisano wpis do cron_log (wysłano ${sentCount} powiadomień)`);
+}
+
+run();
+
+// Naprawa błędu modułu
+export {};
