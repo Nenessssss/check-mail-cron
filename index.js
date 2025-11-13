@@ -70,39 +70,6 @@ async function run() {
     };
 
     try {
-      // ✉️ Wysyłka e-maili
       await transporter.sendMail(msgTech);
       await transporter.sendMail(msgStock);
-      console.log(`✉️ Wysłano e-maile dla: ${toolInfo}`);
-
-      // 🕓 Zapisujemy datę wysyłki
-      await supabase
-        .from('formularze')
-        .update({
-          mailed: true,
-          mailed_date: new Date().toISOString()
-        })
-        .eq('id', id);
-
-      // 🟦 Zapis do zamówienia
-      await supabase.from('zamowienia').insert({
-        location,
-        category,
-        name,
-        vt,
-        sent_date: today.toISOString().split('T')[0],
-      });
-
-      sentCount++;
-
-    } catch (e) {
-      console.error('❌ Błąd przy wysyłaniu maili:', e);
-    }
-  }
-
-  // 🧾 Log w cron_log
-  await supabase.from('cron_log').insert({ count: sentCount });
-  console.log(`🟢 Zapisano wpis do cron_log (wysłano ${sentCount} powiadomień)`);
-}
-
-run();
+      conso
